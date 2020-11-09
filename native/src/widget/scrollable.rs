@@ -5,6 +5,7 @@ use crate::{
 };
 
 use std::{f32, hash::Hash, u32};
+use std::cell::RefCell;
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
@@ -287,6 +288,11 @@ where
             Point::new(cursor_position.x, -1.0)
         };
 
+        if *self.state.should_scroll_to_bottom.borrow() {
+            self.state.scroll_to(1.0, bounds, content_bounds);
+            *self.state.should_scroll_to_bottom.borrow_mut() = false;
+        }
+
         self.content.on_event(
             event,
             content,
@@ -389,10 +395,11 @@ where
 /// The local state of a [`Scrollable`].
 ///
 /// [`Scrollable`]: struct.Scrollable.html
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct State {
     scroller_grabbed_at: Option<f32>,
     offset: f32,
+    should_scroll_to_bottom: RefCell<bool>,
 }
 
 impl State {
@@ -439,6 +446,11 @@ impl State {
     ) {
         self.offset =
             ((content_bounds.height - bounds.height) * percentage).max(0.0);
+    }
+
+    /// Scrolls to the bottom of the scrollable in next draw.
+    pub fn scroll_to_bottom(&mut self) {
+        *self.should_scroll_to_bottom.borrow_mut() = true;
     }
 
     /// Returns the current scrolling offset of the [`State`], given the bounds
